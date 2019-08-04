@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, func, distinct
 
 from flask import Flask, jsonify
 
+import datetime as dt
 
 #################################################
 # Database Setup
@@ -43,6 +44,11 @@ def calc_temps(start_date, end_date, session):
          .filter(Measurement.date >= start_date)\
          .filter(Measurement.date <= end_date)\
          .all()[0]
+
+def last_date(session):
+    lastdate = dt.date.fromisoformat((session.query(func.max(Measurement.date)).all()[0][0]))
+    lastdate12 = dt.date(lastdate.year - 1, lastdate.month, lastdate.day)
+    return lastdate12
 
 #################################################
 # Flask Setup
@@ -105,9 +111,13 @@ def tobs():
     """Return a list of station IDs, dates, and temperature observations"""
     # Query all passengers
     session = Session(engine)
+
+    cutoff = last_date(session)
+
     results = session.query(Measurement.station,
                             Measurement.date,
-                            Measurement.tobs).all()
+                            Measurement.tobs)\
+              .filter(Measurement.date >= cutoff).all()
 
     # Create a dictionary from the row data and append to a list of all_tobs
     all_tobs =  []
